@@ -1,0 +1,141 @@
+// AGTT data model. IMPORTANT: none of the "(auto)" fields from the sheet are stored here.
+// Only raw inputs live in the DB; every derived score is recomputed live from
+// src/lib/engine/priority.ts + today's date. Dates are stored twice on purpose (text + parsed)
+// so genuinely-non-date values ("Rolling / By referral only") are never silently dropped.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OpportunityType {
+  GRANT
+  AWARD
+  FELLOWSHIP
+  FUND
+  PRIZE
+  GLOBAL_PARTICIPATION
+  MENTORSHIP
+  AWARD_GRANT
+  FELLOWSHIP_GRANT
+  SPONSORED_INTERNS
+}
+
+enum Stage {
+  RESEARCH
+  OUTREACH
+  LOI
+  DRAFTING
+  SUBMITTED
+  INTERVIEW
+  NEGOTIATION
+  AWARDED
+  DECLINED
+  PAUSED
+  DEADLINE_MISSED
+}
+
+enum Status {
+  NOT_STARTED
+  IN_PROGRESS
+  WAITING
+  SUBMITTED
+  WON
+  LOST
+  PAUSE
+}
+
+enum Currency {
+  USD
+  INR
+  EUR
+  GBP
+  CHF
+}
+
+model Opportunity {
+  id                      String          @id @default(cuid())
+  displayId               String          @unique
+  type                    OpportunityType
+  name                    String
+  funderOrganization      String
+  programInitiative       String?
+  website                 String?
+  geographyEligibility    String?
+  thematicAreas           String?
+  openDateText            String?
+  openDate                DateTime?
+  loiRequired             Boolean         @default(false)
+  loiDeadlineText         String?
+  loiDeadline             DateTime?
+  fullDeadlineText        String?
+  fullDeadline            DateTime?
+  decisionDateText        String?
+  decisionDate            DateTime?
+  stage                   Stage           @default(RESEARCH)
+  status                  Status          @default(NOT_STARTED)
+  owner                   String?
+  primaryContactName      String?
+  primaryContactEmail     String?
+  primaryContactPhone     String?
+  relationshipStrength    Float           @default(0)
+  fitScore                Float           @default(0)
+  strategicValue          Float           @default(0)
+  reportingBurden         Float           @default(0)
+  competitionLevel        Float           @default(0)
+  timeCommitmentHours     Float           @default(0)
+  expectedAmount          Float           @default(0)
+  currency                Currency        @default(USD)
+  probability             Float           @default(0)
+  nextAction              String?
+  nextActionDateText      String?
+  nextActionDate          DateTime?
+  lastContactDateText     String?
+  nextFollowupDateText    String?
+  nextFollowupDate        DateTime?
+  reader                  String?
+  recommender             String?
+  signer                  String?
+  kpis                    String?
+  institutionalPriorities String?
+  languageToMirror        String?
+  keyRisks                String?
+  heroFraming             String?
+  notes                   String?
+  docLink                 String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  outreachLogs OutreachLogEntry[]
+
+  @@index([stage])
+  @@index([status])
+  @@index([type])
+}
+
+model OutreachLogEntry {
+  id                   String       @id @default(cuid())
+  date                 DateTime
+  organization         String
+  contactName          String?
+  contactEmail         String?
+  method               String
+  purpose              String?
+  outcome              String?
+  nextStep             String?
+  nextStepDate         DateTime?
+  owner                String?
+  relatedOpportunityId String?
+  relatedOpportunity   Opportunity? @relation(fields: [relatedOpportunityId], references: [id], onDelete: SetNull)
+  relationshipImpact   Int?
+  notes                String?
+  link                 String?
+  createdAt            DateTime     @default(now())
+
+  @@index([relatedOpportunityId])
+  @@index([date])
+}
